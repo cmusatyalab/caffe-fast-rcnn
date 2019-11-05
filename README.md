@@ -1,4 +1,4 @@
-Fast-RCNN Caffe fork updated to work with Python 3.
+Fast R-CNN Caffe fork updated to work with Python 3.
 
 # Caffe
 
