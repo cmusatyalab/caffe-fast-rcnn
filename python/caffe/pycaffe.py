@@ -5,7 +5,7 @@ interface.
 
 from collections import OrderedDict
 try:
-    from itertools import izip_longest
+    from itertools import zip_longest
 except:
     from itertools import zip_longest as izip_longest
 import numpy as np
@@ -25,7 +25,7 @@ def _Net_blobs(self):
     An OrderedDict (bottom to top, i.e., input to output) of network
     blobs indexed by name
     """
-    return OrderedDict(zip(self._blob_names, self._blobs))
+    return OrderedDict(list(zip(self._blob_names, self._blobs)))
 
 
 @property
@@ -34,7 +34,7 @@ def _Net_blob_loss_weights(self):
     An OrderedDict (bottom to top, i.e., input to output) of network
     blob loss weights indexed by name
     """
-    return OrderedDict(zip(self._blob_names, self._blob_loss_weights))
+    return OrderedDict(list(zip(self._blob_names, self._blob_loss_weights)))
 
 
 @property
@@ -97,7 +97,7 @@ def _Net_forward(self, blobs=None, start=None, end=None, **kwargs):
             raise Exception('Input blob arguments do not match net inputs.')
         # Set input according to defined shapes and make arrays single and
         # C-contiguous as Caffe expects.
-        for in_, blob in kwargs.iteritems():
+        for in_, blob in kwargs.items():
             if blob.shape[0] != self.blobs[in_].num:
                 raise Exception('Input is not batch sized')
             self.blobs[in_].data[...] = blob
@@ -145,7 +145,7 @@ def _Net_backward(self, diffs=None, start=None, end=None, **kwargs):
             raise Exception('Top diff arguments do not match net outputs.')
         # Set top diffs according to defined shapes and make arrays single and
         # C-contiguous as Caffe expects.
-        for top, diff in kwargs.iteritems():
+        for top, diff in kwargs.items():
             if diff.shape[0] != self.blobs[top].num:
                 raise Exception('Diff is not batch sized')
             self.blobs[top].diff[...] = diff
@@ -174,13 +174,13 @@ def _Net_forward_all(self, blobs=None, **kwargs):
     all_outs = {out: [] for out in set(self.outputs + (blobs or []))}
     for batch in self._batch(kwargs):
         outs = self.forward(blobs=blobs, **batch)
-        for out, out_blob in outs.iteritems():
+        for out, out_blob in outs.items():
             all_outs[out].extend(out_blob.copy())
     # Package in ndarray.
     for out in all_outs:
         all_outs[out] = np.asarray(all_outs[out])
     # Discard padding.
-    pad = len(all_outs.itervalues().next()) - len(kwargs.itervalues().next())
+    pad = len(next(iter(all_outs.values()))) - len(next(iter(kwargs.values())))
     if pad:
         for out in all_outs:
             all_outs[out] = all_outs[out][:-pad]
@@ -212,19 +212,19 @@ def _Net_forward_backward_all(self, blobs=None, diffs=None, **kwargs):
     backward_batches = self._batch({out: kwargs[out]
                                     for out in self.outputs if out in kwargs})
     # Collect outputs from batches (and heed lack of forward/backward batches).
-    for fb, bb in izip_longest(forward_batches, backward_batches, fillvalue={}):
+    for fb, bb in zip_longest(forward_batches, backward_batches, fillvalue={}):
         batch_blobs = self.forward(blobs=blobs, **fb)
         batch_diffs = self.backward(diffs=diffs, **bb)
-        for out, out_blobs in batch_blobs.iteritems():
+        for out, out_blobs in batch_blobs.items():
             all_outs[out].extend(out_blobs.copy())
-        for diff, out_diffs in batch_diffs.iteritems():
+        for diff, out_diffs in batch_diffs.items():
             all_diffs[diff].extend(out_diffs.copy())
     # Package in ndarray.
     for out, diff in zip(all_outs, all_diffs):
         all_outs[out] = np.asarray(all_outs[out])
         all_diffs[diff] = np.asarray(all_diffs[diff])
     # Discard padding at the end and package in ndarray.
-    pad = len(all_outs.itervalues().next()) - len(kwargs.itervalues().next())
+    pad = len(next(iter(all_outs.values()))) - len(next(iter(kwargs.values())))
     if pad:
         for out, diff in zip(all_outs, all_diffs):
             all_outs[out] = all_outs[out][:-pad]
@@ -256,8 +256,8 @@ def _Net_batch(self, blobs):
     ------
     batch: {blob name: list of blobs} dict for a single batch.
     """
-    num = len(blobs.itervalues().next())
-    batch_size = self.blobs.itervalues().next().num
+    num = len(next(iter(blobs.values())))
+    batch_size = iter(self.blobs.values()).next().num
     remainder = num % batch_size
     num_batches = num / batch_size
 
